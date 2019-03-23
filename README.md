@@ -1,7 +1,7 @@
-#Minecraft Server Plugin (for spigot)
+# Minecraft Server Plugin (for spigot)
 It is called "BasicUtilities" but it does more.
 
-##Features
+## Features
 * welcome message
 * when you consume a mushroom stew, there is a small chance that a 
 mooshroom cow will visit you

@@ -5,6 +5,7 @@ import java.util.Random;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.block.Block;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -18,23 +19,31 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockRedstoneEvent;
+import org.bukkit.event.entity.EntityDeathEvent;
+import org.bukkit.event.inventory.InventoryAction;
+import org.bukkit.event.inventory.InventoryMoveItemEvent;
+import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.PlayerBucketEmptyEvent;
 import org.bukkit.event.player.PlayerEggThrowEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerItemConsumeEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.BookMeta;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.Vector;
 
 //TODO implement event listeners
 //TODO interface with frogpond (only active at certain world location?)
-//TODO message delivery online and offline 
+//TODO message delivery online and offline
+	/*on writtenbook, add to db. on player login, check. spawn vill/mule with waypoint */
 //TODO something cool with redstone
 //TODO remove all near leaves with shears
 
@@ -63,6 +72,8 @@ public class BasicUtilitiesPlugin extends JavaPlugin implements Listener {
 		p.sendMessage(msg);
 		//p.beginConversation(this, getServer().getConsoleSender(), (Prompt) (new MessagePrompt()));
 		//p.sendRawMessage("[plugin test] welcome");
+		
+		handleMail(p);
 	}
 	
 	//TODO implement better command processing utilities
@@ -97,15 +108,30 @@ public class BasicUtilitiesPlugin extends JavaPlugin implements Listener {
 	//
 	@EventHandler
 	public void onPlayerInteractEntityEvent(PlayerInteractEntityEvent e) {
-		//log(e.getPlayer().getName());
+		
 	}
 	
 	//do something cool if holding a certain item and maybe only if they have some other item
 	//bonemeal: if tree chance mushroom tree, etc.
 	@EventHandler
 	public void onPlayerInteractEvent(PlayerInteractEvent e){
-		//log(e.getPlayer().getName());
-		//log(getOnlinePlayerByString("mister_chukles").toString());
+		if (e == null) return;
+		if (e.getClickedBlock().getType() == Material.CHEST && e.getAction() == Action.RIGHT_CLICK_BLOCK) {
+			log(e.getPlayer().getName() + "clicked chest");
+		}
+	}
+	
+	@EventHandler
+	public void onInventoryMoveItem(InventoryMoveItemEvent e) {
+		if (e.getItem().getType() != Material.WRITTEN_BOOK) return;
+		if (e.getDestination().getType() == InventoryType.CHEST) {
+			//check that title of book is a user name
+			for (OfflinePlayer p : getServer().getOfflinePlayers()) {
+				if (p.getName().equalsIgnoreCase( ((BookMeta) e.getItem()).getTitle())) {
+					//add message to the DB
+				}
+			}
+		}
 	}
 	
 	@EventHandler
@@ -124,8 +150,35 @@ public class BasicUtilitiesPlugin extends JavaPlugin implements Listener {
 	}
 	
 	@EventHandler
+	public void onEntityDeath(EntityDeathEvent e) {
+		LivingEntity ent = e.getEntity();
+		Random r = new Random();
+		switch (ent.getType()) {
+		case CREEPER:
+			if (r.nextInt() % 14 == 1)
+				ent.getWorld().dropItem(ent.getLocation(), new ItemStack(Material.FIREWORK_STAR, r.nextInt() % 3 + 1));
+			break;
+		case ZOMBIE:
+			if (r.nextInt() %35 == 1) {
+				ent.getWorld().spawnEntity(ent.getLocation(), EntityType.GIANT);
+				ent.remove();
+				
+			}
+			break;
+		case GIANT:
+			if (r.nextInt() % 6 == 1) {
+				ent.getWorld().spawnEntity(ent.getLocation(), EntityType.VILLAGER);
+			}
+			break;
+		}
+	}
+	
+	
+	
+	@EventHandler
 	public void onBlockRedstone(BlockRedstoneEvent e) {
 		Block b = e.getBlock();
+		if (b.getType() == Material.REDSTONE_WIRE || b.getType() == Material.REDSTONE_TORCH || b.getType() == Material.REPEATER) return;
 		if (b.getType() == Material.CHEST) {
 			log(Integer.toString(e.getNewCurrent()));
 			Entity villager = b.getWorld().spawnEntity(e.getBlock().getLocation().add(0, 1, 0), EntityType.VILLAGER );
@@ -138,9 +191,14 @@ public class BasicUtilitiesPlugin extends JavaPlugin implements Listener {
 				}
 			}
 			
-		} else if (b.getType() == Material.COBBLESTONE) {
+		} else if (b.getType() == Material.COBBLESTONE || b.getType() == Material.STONE) {
 			log(e.getBlock().getType().toString());
 		}
+		log(b.toString());
+	}
+	
+	private void handleMail(Player p) {
+		
 	}
 	
 	//PlayerPortalEvent touching portal. play music
