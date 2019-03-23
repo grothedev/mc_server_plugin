@@ -1,0 +1,2 @@
+#sent to a player each time they join
+join_msg: "[this is the default message a player will receive each time they join the server]"

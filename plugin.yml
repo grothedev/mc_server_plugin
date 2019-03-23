@@ -1,0 +1,10 @@
+name: BasicUtilities
+main: org.grothedev.basicutilities.BasicUtilitiesPlugin
+version: 0.1
+api-version: 1.13
+commands:
+   f mcow [player]:
+      description: give a player a mushroom cow.
+      usage: /f mcow [player]
+      permission: op
+      permission-message: You don't have permission
