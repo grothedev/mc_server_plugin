@@ -196,16 +196,18 @@ public class BasicUtilitiesPlugin extends JavaPlugin implements Listener {
 	
 	@EventHandler
 	public void onEntitySpawn(EntitySpawnEvent e) {
-		LivingEntity ent = (LivingEntity) e.getEntity();
-		Random r = new Random();
-		switch (ent.getType()) {
-			case ZOMBIE:
-				if (r.nextInt() % Config.ZOMBIE_GIANT == 1) {
-					ent.getWorld().spawnEntity(ent.getLocation(), EntityType.GIANT);
-					ent.remove();
-					
-				}
-				break;
+		if (e instanceof LivingEntity) {
+			LivingEntity ent = (LivingEntity) e.getEntity();
+			Random r = new Random();
+			switch (ent.getType()) {
+				case ZOMBIE:
+					if (r.nextInt() % Config.ZOMBIE_GIANT == 1) {
+						ent.getWorld().spawnEntity(ent.getLocation(), EntityType.GIANT);
+						ent.remove();
+						
+					}
+					break;
+			}
 		}
 		
 	}
@@ -269,12 +271,18 @@ public class BasicUtilitiesPlugin extends JavaPlugin implements Listener {
 
 	@EventHandler
 	public void onPlayerEditBook(PlayerEditBookEvent e) {
+		if (e == null) {
+			log("book edit event null");
+			return;
+		}
 		Player from = e.getPlayer();
 		String toStr = e.getNewBookMeta().getTitle().toString();
 		OfflinePlayer to = getOfflinePlayerByString(toStr);
 		if (to == null) {
 			from.sendMessage("that player was never on");
 			return;
+		} else {
+			from.sendMessage("found the player");
 		}
 		//add to DB
 		Entity villager = from.getWorld().spawnEntity(from.getLocation().add(0, 1, 0), EntityType.VILLAGER );
@@ -297,7 +305,10 @@ public class BasicUtilitiesPlugin extends JavaPlugin implements Listener {
 	private OfflinePlayer getOfflinePlayerByString(String name) {
 		if (name == null) return null;
 		for (OfflinePlayer p : getServer().getOfflinePlayers()) {
+			if (p.getName() == null) continue;
 			//getServer().broadcastMessage(p.getName());
+			//log("name = " + name);
+			//log("p = " + p.getName());
 			if (p.getName().equals(name)) return p;
 		}
 		return null;
