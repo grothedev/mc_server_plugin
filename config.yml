@@ -1,2 +1,13 @@
 #sent to a player each time they join
 join_msg: "[this is the default message a player will receive each time they join the server]"
+
+#is the mail delivery service active?
+mail_active: false
+
+#these numbers are the recipricol of the probably that the given event will happen
+mushroom_cow: 5 #e.g. 1/5
+mushroom_trip: 10
+zombie_giant: 30
+fish_boat_speed: 2
+creeper_firework: 6
+giant_villager: 3

@@ -9,6 +9,7 @@ import org.bukkit.OfflinePlayer;
 import org.bukkit.block.Block;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
+import org.bukkit.configuration.Configuration;
 import org.bukkit.conversations.MessagePrompt;
 import org.bukkit.conversations.Prompt;
 import org.bukkit.entity.Entity;
@@ -16,16 +17,20 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.entity.HumanEntity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Villager;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockRedstoneEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
+import org.bukkit.event.entity.EntitySpawnEvent;
 import org.bukkit.event.inventory.InventoryAction;
+import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryMoveItemEvent;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.PlayerBucketEmptyEvent;
+import org.bukkit.event.player.PlayerEditBookEvent;
 import org.bukkit.event.player.PlayerEggThrowEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
@@ -38,6 +43,8 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.BookMeta;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
 import org.bukkit.util.Vector;
 
 //TODO implement event listeners
@@ -48,6 +55,9 @@ import org.bukkit.util.Vector;
 //TODO remove all near leaves with shears
 
 public class BasicUtilitiesPlugin extends JavaPlugin implements Listener {
+	
+	Configuration conf;
+	
 	@Override
 	public void onDisable() {
 		super.onDisable();
@@ -60,20 +70,19 @@ public class BasicUtilitiesPlugin extends JavaPlugin implements Listener {
 		super.onEnable();
 		getServer().getPluginManager().registerEvents(this, this);
 		saveDefaultConfig();
+		conf = getConfig();
+		updateLocalConfig(conf);
 	}
 	
 	@EventHandler
 	public void onPlayerJoin(PlayerJoinEvent event) {
 		Player p = event.getPlayer();
 		
-		String msg = getConfig().getString("join_msg");
-		if (msg.length() == 0) return;
+		String msg = conf.getString("join_msg");
+		if (msg.length() > 0) p.sendMessage(msg);
 		
-		p.sendMessage(msg);
-		//p.beginConversation(this, getServer().getConsoleSender(), (Prompt) (new MessagePrompt()));
-		//p.sendRawMessage("[plugin test] welcome");
 		
-		handleMail(p);
+		if (conf.getBoolean("maiL_active")) handleMail(p);
 	}
 	
 	//TODO implement better command processing utilities
@@ -108,45 +117,97 @@ public class BasicUtilitiesPlugin extends JavaPlugin implements Listener {
 	//
 	@EventHandler
 	public void onPlayerInteractEntityEvent(PlayerInteractEntityEvent e) {
-		
+		if (e == null) return;
 	}
 	
 	//do something cool if holding a certain item and maybe only if they have some other item
 	//bonemeal: if tree chance mushroom tree, etc.
 	@EventHandler
 	public void onPlayerInteractEvent(PlayerInteractEvent e){
+		/*
 		if (e == null) return;
 		if (e.getClickedBlock().getType() == Material.CHEST && e.getAction() == Action.RIGHT_CLICK_BLOCK) {
 			log(e.getPlayer().getName() + "clicked chest");
 		}
+		*/
 	}
 	
 	@EventHandler
 	public void onInventoryMoveItem(InventoryMoveItemEvent e) {
+		/*  going to go straight from book writing instead of having to put into chest
+		 * 
+		log("inv move event" + e.getSource().getHolder().toString());
 		if (e.getItem().getType() != Material.WRITTEN_BOOK) return;
 		if (e.getDestination().getType() == InventoryType.CHEST) {
+			log("put written book in chest");
 			//check that title of book is a user name
 			for (OfflinePlayer p : getServer().getOfflinePlayers()) {
 				if (p.getName().equalsIgnoreCase( ((BookMeta) e.getItem()).getTitle())) {
 					//add message to the DB
+					String msg = ((BookMeta) e.getItem()).getPages().toString();
+					log("queue mail delivery to " + p.getName() + ": " + msg);
 				}
 			}
 		}
+		*/
 	}
 	
 	@EventHandler
+	public void onInventoryClick(InventoryClickEvent e) {
+		/*  
+		log("inv click event" + e.getWhoClicked().getName());
+		if (e.getAction() != InventoryAction.PLACE_ONE && e.getAction() != InventoryAction.PLACE_ALL) return;
+		log("inv: " + e.getClickedInventory().getType().toString() + "\n item: " + e.getCurrentItem().toString());
+		*/
+	}
+	
+	//TODO boat speed when eat fish. requires state system so know when player has eaten and if in boat
+	@EventHandler
 	public void onPlayerItemConsume(PlayerItemConsumeEvent e) {
 		Random rand = new Random();
-		if (rand.nextInt() % 5 != 1) return;
-		if (e.getItem().getType() == Material.MUSHROOM_STEW) {
-			Player p = e.getPlayer();
-			int spawnRad = 8;
-			Location loc = p.getLocation().subtract(p.getLocation().getDirection().multiply(6));
-			Entity cow = p.getWorld().spawnEntity(loc, EntityType.MUSHROOM_COW);
-			if (!cow.isOnGround()) {
-				cow.teleport(loc.add(new Location(cow.getWorld(), rand.nextInt()%spawnRad - spawnRad/2, 1, rand.nextInt()%spawnRad - spawnRad/2)));
+		Player p = e.getPlayer();
+		switch(e.getItem().getType()) {
+		case MUSHROOM_STEW:
+			if (rand.nextInt() % Config.MUSHROOM_COW == 1) {
+				log("mooshroom visiting " + p.getName());
+				int spawnRad = 8;
+				Location loc = p.getLocation().subtract(p.getLocation().getDirection().multiply(6));
+				Entity cow = p.getWorld().spawnEntity(loc, EntityType.MUSHROOM_COW);
+				if (!cow.isOnGround()) {
+					cow.teleport(loc.add(new Location(cow.getWorld(), rand.nextInt()%spawnRad - spawnRad/2, 1, rand.nextInt()%spawnRad - spawnRad/2)));
+				}
+			}
+			if (rand.nextInt() % 10 == Config.MUSHROOM_TRIP) {
+				log(p.getName() + " ate some magic mushroom stew");
+				p.addPotionEffect(new PotionEffect(PotionEffectType.CONFUSION, rand.nextInt() % 20, rand.nextInt() % 8 + 2, true));
+			}
+			break;
+		case TROPICAL_FISH:
+			if (rand.nextInt() % Config.FISH_BOAT_SPEED == 1) {
+				p.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, rand.nextInt() % 5, rand.nextInt() % 5));
+				if (p.isInsideVehicle()) {
+					
+				}
 			}
 		}
+		
+		
+	}
+	
+	@EventHandler
+	public void onEntitySpawn(EntitySpawnEvent e) {
+		LivingEntity ent = (LivingEntity) e.getEntity();
+		Random r = new Random();
+		switch (ent.getType()) {
+			case ZOMBIE:
+				if (r.nextInt() % Config.ZOMBIE_GIANT == 1) {
+					ent.getWorld().spawnEntity(ent.getLocation(), EntityType.GIANT);
+					ent.remove();
+					
+				}
+				break;
+		}
+		
 	}
 	
 	@EventHandler
@@ -155,18 +216,18 @@ public class BasicUtilitiesPlugin extends JavaPlugin implements Listener {
 		Random r = new Random();
 		switch (ent.getType()) {
 		case CREEPER:
-			if (r.nextInt() % 14 == 1)
+			if (r.nextInt() % Config.CREEPER_FIREWORK == 1)
 				ent.getWorld().dropItem(ent.getLocation(), new ItemStack(Material.FIREWORK_STAR, r.nextInt() % 3 + 1));
 			break;
 		case ZOMBIE:
-			if (r.nextInt() %35 == 1) {
+			if (r.nextInt() % Config.ZOMBIE_GIANT == 1) {
 				ent.getWorld().spawnEntity(ent.getLocation(), EntityType.GIANT);
 				ent.remove();
 				
 			}
 			break;
 		case GIANT:
-			if (r.nextInt() % 6 == 1) {
+			if (r.nextInt() % Config.GIANT_VILLAGER == 1) {
 				ent.getWorld().spawnEntity(ent.getLocation(), EntityType.VILLAGER);
 			}
 			break;
@@ -205,9 +266,20 @@ public class BasicUtilitiesPlugin extends JavaPlugin implements Listener {
 	//Block events: keep track of environment changes, derive mathematical model to trigger relevant events
 	//PlayerBedEnterEvent : sleep paralysis, 
 	//WeatherEvent : amplify
-	//consume mushroom soup : something cool
 
-	
+	@EventHandler
+	public void onPlayerEditBook(PlayerEditBookEvent e) {
+		Player from = e.getPlayer();
+		String toStr = e.getNewBookMeta().getTitle().toString();
+		OfflinePlayer to = getOfflinePlayerByString(toStr);
+		if (to == null) {
+			from.sendMessage("that player was never on");
+			return;
+		}
+		//add to DB
+		Entity villager = from.getWorld().spawnEntity(from.getLocation().add(0, 1, 0), EntityType.VILLAGER );
+		((Villager) villager).setTarget(from);
+	}
 	
 	private void log(String msg) {
 		getLogger().info(msg);
@@ -216,8 +288,22 @@ public class BasicUtilitiesPlugin extends JavaPlugin implements Listener {
 	private Player getOnlinePlayerByString(String name) {
 		if (name == null) return null;
 		for (Player p : getServer().getOnlinePlayers()) {
+			//getServer().broadcastMessage(p.getName());
 			if (p.getName().equals(name)) return p;
 		}
 		return null;
+	}
+	
+	private OfflinePlayer getOfflinePlayerByString(String name) {
+		if (name == null) return null;
+		for (OfflinePlayer p : getServer().getOfflinePlayers()) {
+			//getServer().broadcastMessage(p.getName());
+			if (p.getName().equals(name)) return p;
+		}
+		return null;
+	}
+	
+	private void updateLocalConfig(Configuration cfg) {
+		//TODO 
 	}
 }
