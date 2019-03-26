@@ -47,7 +47,6 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.util.Vector;
 
-//TODO implement event listeners
 //TODO interface with frogpond (only active at certain world location?)
 //TODO message delivery online and offline
 	/*on writtenbook, add to db. on player login, check. spawn vill/mule with waypoint */
@@ -72,6 +71,8 @@ public class BasicUtilitiesPlugin extends JavaPlugin implements Listener {
 		saveDefaultConfig();
 		conf = getConfig();
 		updateLocalConfig(conf);
+		
+		//getDatabase();
 	}
 	
 	@EventHandler
@@ -217,22 +218,47 @@ public class BasicUtilitiesPlugin extends JavaPlugin implements Listener {
 		LivingEntity ent = e.getEntity();
 		Random r = new Random();
 		switch (ent.getType()) {
-		case CREEPER:
-			if (r.nextInt() % Config.CREEPER_FIREWORK == 1)
-				ent.getWorld().dropItem(ent.getLocation(), new ItemStack(Material.FIREWORK_STAR, r.nextInt() % 3 + 1));
-			break;
-		case ZOMBIE:
-			if (r.nextInt() % Config.ZOMBIE_GIANT == 1) {
-				ent.getWorld().spawnEntity(ent.getLocation(), EntityType.GIANT);
-				ent.remove();
-				
-			}
-			break;
-		case GIANT:
-			if (r.nextInt() % Config.GIANT_VILLAGER == 1) {
-				ent.getWorld().spawnEntity(ent.getLocation(), EntityType.VILLAGER);
-			}
-			break;
+			case CREEPER:
+				if (r.nextInt() % Config.CREEPER_FIREWORK == 1)
+					ent.getWorld().dropItem(ent.getLocation(), new ItemStack(Material.FIREWORK_STAR, r.nextInt() % 3 + 1));
+				if (Config.DROP_HEADS && r.nextInt() % 1000 == 1) {
+					ent.getWorld().dropItem(ent.getLocation(), new ItemStack(Material.CREEPER_HEAD, 1));
+				}
+				if (Config.DROP_SLIMES != 0 && r.nextInt()%Config.DROP_SLIMES == 1) {
+					ent.getWorld().dropItem(ent.getLocation(), new ItemStack(Material.SLIME_BALL, 1));
+				}
+				break;
+			case ZOMBIE:
+				if (r.nextInt() % Config.ZOMBIE_GIANT == 1) {
+					ent.getWorld().spawnEntity(ent.getLocation(), EntityType.GIANT);
+					ent.remove();
+					
+				}
+				if (Config.DROP_HEADS && r.nextInt() % 1000 == 1) {
+					ent.getWorld().dropItem(ent.getLocation(), new ItemStack(Material.ZOMBIE_HEAD, 1));
+				}
+				if (Config.DROP_SLIMES != 0 && r.nextInt()%Config.DROP_SLIMES == 1) {
+					ent.getWorld().dropItem(ent.getLocation(), new ItemStack(Material.SLIME_BALL, 1));
+				}
+				break;
+			case GIANT:
+				if (r.nextInt() % Config.GIANT_VILLAGER == 1) {
+					ent.getWorld().spawnEntity(ent.getLocation(), EntityType.VILLAGER);
+				}
+				break;
+			case SKELETON:
+				if (Config.DROP_HEADS && r.nextInt() % 1000 == 1) {
+					ent.getWorld().dropItem(ent.getLocation(), new ItemStack(Material.SKELETON_SKULL, 1));
+				}
+				if (Config.DROP_SLIMES != 0 && r.nextInt()%Config.DROP_SLIMES == 1) {
+					ent.getWorld().dropItem(ent.getLocation(), new ItemStack(Material.SLIME_BALL, 1));
+				}
+				break;
+			case ENDERMAN:
+				if (!e.getDrops().contains(Material.ENDER_PEARL) || e.getDrops().size() == 0) {
+					ent.getWorld().dropItem(ent.getLocation(), new ItemStack(Material.ENDER_PEARL, 1));
+				}
+				break;
 		}
 	}
 	
@@ -285,7 +311,7 @@ public class BasicUtilitiesPlugin extends JavaPlugin implements Listener {
 			from.sendMessage("found the player");
 		}
 		//add to DB
-		Entity villager = from.getWorld().spawnEntity(from.getLocation().add(0, 1, 0), EntityType.VILLAGER );
+		Entity villager = from.getWorld().spawnEntity(from.getLocation().add(5, 1, 5), EntityType.VILLAGER );
 		((Villager) villager).setTarget(from);
 	}
 	
@@ -315,6 +341,14 @@ public class BasicUtilitiesPlugin extends JavaPlugin implements Listener {
 	}
 	
 	private void updateLocalConfig(Configuration cfg) {
-		//TODO 
+		Config.MAIL_ACTIVE = cfg.getBoolean("mail_active");
+		Config.MUSHROOM_COW = cfg.getInt("mushroom_cow"); //these ints are the reciprical of the probability that the event will occur
+		Config.MUSHROOM_TRIP = cfg.getInt("mushroom_trip");
+		Config.ZOMBIE_GIANT = cfg.getInt("zombie_giant");
+		Config.FISH_BOAT_SPEED = cfg.getInt("fish_boat_speed");
+		Config.CREEPER_FIREWORK = cfg.getInt("creeper_firework");
+		Config.GIANT_VILLAGER = cfg.getInt("giant_villager");
+		Config.DROP_HEADS = cfg.getBoolean("drop_heads");
+		Config.DROP_SLIMES = cfg.getInt("drop_slimes");
 	}
 }

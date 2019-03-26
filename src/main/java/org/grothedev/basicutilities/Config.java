@@ -8,4 +8,6 @@ public class Config {
 	public static int FISH_BOAT_SPEED = 2;
 	public static int CREEPER_FIREWORK = 6;
 	public static int GIANT_VILLAGER = 3;
+	public static boolean DROP_HEADS = true;
+	public static int DROP_SLIMES = 40;
 }
