@@ -14,6 +14,7 @@ import org.bukkit.configuration.Configuration;
 import org.bukkit.conversations.MessagePrompt;
 import org.bukkit.conversations.Prompt;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.Slime;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.HumanEntity;
 import org.bukkit.entity.LivingEntity;
@@ -120,7 +121,9 @@ public class BasicUtilitiesPlugin extends JavaPlugin implements Listener {
 		if (Config.FUNGUS_INNOC != 0 && r.nextInt() % Config.FUNGUS_INNOC == 1) {
 			if (e.getBucket() == Material.WATER_BUCKET) {
 				Player p = e.getPlayer();
-				p.getWorld().spawnEntity(e.getBlockClicked().getLocation().add(0, 1, 0), EntityType.SLIME);
+				log("bucket empty innoculated with fungus");
+				Slime slime = (Slime) p.getWorld().spawnEntity(e.getBlockClicked().getLocation().add(0, 2, 0), EntityType.SLIME);
+				slime.setSize(r.nextInt() % 7 + 3);
 			} 
 		}
 	}
