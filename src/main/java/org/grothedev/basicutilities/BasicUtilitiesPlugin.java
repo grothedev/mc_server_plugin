@@ -119,7 +119,8 @@ public class BasicUtilitiesPlugin extends JavaPlugin implements Listener {
 		Random r = new Random();
 		if (Config.FUNGUS_INNOC != 0 && r.nextInt() % Config.FUNGUS_INNOC == 1) {
 			if (e.getBucket() == Material.WATER_BUCKET) {
-				log("water bucket");
+				Player p = e.getPlayer();
+				p.getWorld().spawnEntity(e.getBlockClicked().getLocation().add(0, 1, 0), EntityType.SLIME);
 			} 
 		}
 	}
