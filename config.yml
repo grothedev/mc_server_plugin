@@ -12,6 +12,8 @@ fish_boat_speed: 2
 creeper_firework: 6
 giant_villager: 3
 drop_slimes: 40
+fungus_innoc: 5
 
 #should there be a small chance that mobs drop heads?
 drop_heads: true
+

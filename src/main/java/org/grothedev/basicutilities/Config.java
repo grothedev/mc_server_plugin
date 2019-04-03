@@ -9,5 +9,6 @@ public class Config {
 	public static int CREEPER_FIREWORK = 6;
 	public static int GIANT_VILLAGER = 3;
 	public static boolean DROP_HEADS = true;
-	public static int DROP_SLIMES = 40;
+	public static int DROP_SLIMES = 20;
+	public static int FUNGUS_INNOC = 5;
 }

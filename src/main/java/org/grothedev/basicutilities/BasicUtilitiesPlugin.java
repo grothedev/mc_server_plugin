@@ -6,6 +6,7 @@ import java.util.Random;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
+import org.bukkit.Particle;
 import org.bukkit.block.Block;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -18,10 +19,14 @@ import org.bukkit.entity.HumanEntity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Villager;
+import org.bukkit.event.Event;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
+import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockEvent;
+import org.bukkit.event.block.BlockFertilizeEvent;
 import org.bukkit.event.block.BlockRedstoneEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.EntitySpawnEvent;
@@ -36,15 +41,19 @@ import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerItemConsumeEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.vehicle.VehicleEnterEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.BookMeta;
+import org.bukkit.metadata.MetadataValue;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
+import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Vector;
 
 //TODO interface with frogpond (only active at certain world location?)
@@ -56,6 +65,7 @@ import org.bukkit.util.Vector;
 public class BasicUtilitiesPlugin extends JavaPlugin implements Listener {
 	
 	Configuration conf;
+	Random rand;
 	
 	@Override
 	public void onDisable() {
@@ -69,6 +79,7 @@ public class BasicUtilitiesPlugin extends JavaPlugin implements Listener {
 		super.onEnable();
 		getServer().getPluginManager().registerEvents(this, this);
 		saveDefaultConfig();
+		rand = new Random();
 		conf = getConfig();
 		updateLocalConfig(conf);
 		
@@ -103,8 +114,33 @@ public class BasicUtilitiesPlugin extends JavaPlugin implements Listener {
 	
 	//chance of being innoculated with fungus spores, then water spawns something every once in a while, or something grows on surrounding blocks
 	@EventHandler
-	public void onPlayerBucketEmpty(PlayerBucketEmptyEvent event) {
+	public void onPlayerBucketEmpty(PlayerBucketEmptyEvent e) {
+		//BukkitTask t = new HandleEvent(event, this).runTask(this);
+		Random r = new Random();
+		if (Config.FUNGUS_INNOC != 0 && r.nextInt() % Config.FUNGUS_INNOC == 1) {
+			if (e.getBucket() == Material.WATER_BUCKET) {
+				log("water bucket");
+			} 
+		}
+	}
+	
+	@EventHandler
+	public void onBlockBreak(BlockBreakEvent e) {
+		log("block break");
 		
+		getServer().getScheduler().scheduleSyncDelayedTask(this, new Runnable() {
+			@Override
+			public void run() {
+			}
+			
+		});
+	}
+	
+	@EventHandler
+	public void onBlockFertilize(BlockFertilizeEvent e) {
+		if (Config.FUNGUS_INNOC != 0 && rand.nextInt() % Config.FUNGUS_INNOC == 1) {
+			
+		}
 	}
 	
 	//spawn something
@@ -125,12 +161,27 @@ public class BasicUtilitiesPlugin extends JavaPlugin implements Listener {
 	//bonemeal: if tree chance mushroom tree, etc.
 	@EventHandler
 	public void onPlayerInteractEvent(PlayerInteractEvent e){
+		//testing if event handling is on other thread
+		/*log("starting sleep");
+		try {
+			Thread.sleep(10000);
+			log("sleep done");
+		} catch (InterruptedException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}*/
+				
+		Random rand = new Random();
 		/*
 		if (e == null) return;
 		if (e.getClickedBlock().getType() == Material.CHEST && e.getAction() == Action.RIGHT_CLICK_BLOCK) {
 			log(e.getPlayer().getName() + "clicked chest");
 		}
 		*/
+		
+		if (e.getItem().getType() == Material.GOLDEN_HOE) {
+			e.getPlayer().spawnParticle(Particle.CLOUD, e.getPlayer().getLocation(), rand.nextInt() % 35 + 10);
+		}
 	}
 	
 	@EventHandler
@@ -160,13 +211,15 @@ public class BasicUtilitiesPlugin extends JavaPlugin implements Listener {
 		if (e.getAction() != InventoryAction.PLACE_ONE && e.getAction() != InventoryAction.PLACE_ALL) return;
 		log("inv: " + e.getClickedInventory().getType().toString() + "\n item: " + e.getCurrentItem().toString());
 		*/
+		
 	}
 	
 	//TODO boat speed when eat fish. requires state system so know when player has eaten and if in boat
 	@EventHandler
 	public void onPlayerItemConsume(PlayerItemConsumeEvent e) {
-		Random rand = new Random();
+		
 		Player p = e.getPlayer();
+		
 		switch(e.getItem().getType()) {
 		case MUSHROOM_STEW:
 			if (rand.nextInt() % Config.MUSHROOM_COW == 1) {
@@ -190,6 +243,11 @@ public class BasicUtilitiesPlugin extends JavaPlugin implements Listener {
 					
 				}
 			}
+			break;
+		case APPLE:
+			if (rand.nextInt() % 10 == 1) {
+				p.setGravity(false);
+			}
 		}
 		
 		
@@ -197,7 +255,10 @@ public class BasicUtilitiesPlugin extends JavaPlugin implements Listener {
 	
 	@EventHandler
 	public void onEntitySpawn(EntitySpawnEvent e) {
-		if (e instanceof LivingEntity) {
+		//BukkitTask t = new HandleEvent(e, this).runTask(this);
+		
+		
+		if (e.getEntity() instanceof LivingEntity) {
 			LivingEntity ent = (LivingEntity) e.getEntity();
 			Random r = new Random();
 			switch (ent.getType()) {
@@ -210,11 +271,15 @@ public class BasicUtilitiesPlugin extends JavaPlugin implements Listener {
 					break;
 			}
 		}
-		
+	
 	}
 	
 	@EventHandler
 	public void onEntityDeath(EntityDeathEvent e) {
+		//LivingEntity ent = e.getEntity();
+		//BukkitTask handleEntityDeath = new EntityDeathHandler(e).runTask(this);
+		//BukkitTask t = new HandleEvent(e, this).runTask(this);
+		
 		LivingEntity ent = e.getEntity();
 		Random r = new Random();
 		switch (ent.getType()) {
@@ -255,13 +320,12 @@ public class BasicUtilitiesPlugin extends JavaPlugin implements Listener {
 				}
 				break;
 			case ENDERMAN:
-				if (!e.getDrops().contains(Material.ENDER_PEARL) || e.getDrops().size() == 0) {
+				if (e.getDrops().size() == 0 || e.getDrops().get(0).getType() != Material.ENDER_PEARL) {
 					ent.getWorld().dropItem(ent.getLocation(), new ItemStack(Material.ENDER_PEARL, 1));
 				}
 				break;
 		}
 	}
-	
 	
 	
 	@EventHandler
@@ -295,6 +359,16 @@ public class BasicUtilitiesPlugin extends JavaPlugin implements Listener {
 	//PlayerBedEnterEvent : sleep paralysis, 
 	//WeatherEvent : amplify
 
+	@EventHandler
+	public void onVehicleEnter(VehicleEnterEvent e) {
+		if (e.getEntered() instanceof Player) {
+			Player p = (Player) e.getEntered();
+			if (p.getInventory().contains(Material.LEATHER)) {
+				p.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 50, 2));
+			}
+		}
+	}
+	
 	@EventHandler
 	public void onPlayerEditBook(PlayerEditBookEvent e) {
 		if (e == null) {
@@ -350,5 +424,65 @@ public class BasicUtilitiesPlugin extends JavaPlugin implements Listener {
 		Config.GIANT_VILLAGER = cfg.getInt("giant_villager");
 		Config.DROP_HEADS = cfg.getBoolean("drop_heads");
 		Config.DROP_SLIMES = cfg.getInt("drop_slimes");
+		Config.FUNGUS_INNOC = cfg.getInt("fungus_innoc");
+	}
+	
+	class EntityDeathHandler extends BukkitRunnable{
+
+		EntityDeathEvent e;
+		
+		public EntityDeathHandler(EntityDeathEvent event) {
+			this.e = event;
+		}
+		
+		@Override
+		public void run() {
+			LivingEntity ent = e.getEntity();
+			Random r = new Random();
+			switch (ent.getType()) {
+				case CREEPER:
+					if (r.nextInt() % Config.CREEPER_FIREWORK == 1)
+						ent.getWorld().dropItem(ent.getLocation(), new ItemStack(Material.FIREWORK_STAR, r.nextInt() % 3 + 1));
+					if (Config.DROP_HEADS && r.nextInt() % 1000 == 1) {
+						ent.getWorld().dropItem(ent.getLocation(), new ItemStack(Material.CREEPER_HEAD, 1));
+					}
+					if (Config.DROP_SLIMES != 0 && r.nextInt()%Config.DROP_SLIMES == 1) {
+						ent.getWorld().dropItem(ent.getLocation(), new ItemStack(Material.SLIME_BALL, 1));
+					}
+					break;
+				case ZOMBIE:
+					if (r.nextInt() % Config.ZOMBIE_GIANT == 1) {
+						ent.getWorld().spawnEntity(ent.getLocation(), EntityType.GIANT);
+						ent.remove();
+						
+					}
+					if (Config.DROP_HEADS && r.nextInt() % 1000 == 1) {
+						ent.getWorld().dropItem(ent.getLocation(), new ItemStack(Material.ZOMBIE_HEAD, 1));
+					}
+					if (Config.DROP_SLIMES != 0 && r.nextInt()%Config.DROP_SLIMES == 1) {
+						ent.getWorld().dropItem(ent.getLocation(), new ItemStack(Material.SLIME_BALL, 1));
+					}
+					break;
+				case GIANT:
+					if (r.nextInt() % Config.GIANT_VILLAGER == 1) {
+						ent.getWorld().spawnEntity(ent.getLocation(), EntityType.VILLAGER);
+					}
+					break;
+				case SKELETON:
+					if (Config.DROP_HEADS && r.nextInt() % 1000 == 1) {
+						ent.getWorld().dropItem(ent.getLocation(), new ItemStack(Material.SKELETON_SKULL, 1));
+					}
+					if (Config.DROP_SLIMES != 0 && r.nextInt()%Config.DROP_SLIMES == 1) {
+						ent.getWorld().dropItem(ent.getLocation(), new ItemStack(Material.SLIME_BALL, 1));
+					}
+					break;
+				case ENDERMAN:
+					if (e.getDrops().size() == 0 || e.getDrops().get(0).getType() != Material.ENDER_PEARL) {
+						ent.getWorld().dropItem(ent.getLocation(), new ItemStack(Material.ENDER_PEARL, 1));
+					}
+					break;
+			}
+		}
+		
 	}
 }
